@@ -24,6 +24,7 @@ ext {
          // devxsb 프로젝트에서 사용될 수 있으므로 미리 추가해두는 것도 좋습니다.
          implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+
          // 테스트 의존성
          testImplementation 'org.springframework.boot:spring-boot-starter-test'
      }

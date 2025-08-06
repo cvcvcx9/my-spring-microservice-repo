@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+group = 'com.cvcvcx'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17' // 사용 중인 Java 버전에 맞게 설정 (Spring Boot 3.x는 Java 17 이상 권장)
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    set('springCloudVersion', '2025.0.0')
+}
+
+dependencies {
+    // Eureka Server 의존성
+    implementation 'org.springframework.cloud:spring-cloud-config-server'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server'
+
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // 테스트 의존성
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+dependencyManagement {
+    imports {
+        // Spring Cloud BOM (Bill Of Materials)을 사용하여 의존성 버전 관리
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
