@@ -22,7 +22,7 @@ my-spring-microservices/
 ## 주요 기술 스택
 
 *   **Spring Boot 3.5.4**
-*   **Spring Cloud 2023.0.3** (Spring Boot 3.3.x 호환 버전, 3.5.4와 호환될 것으로 예상)
+*   **Spring Cloud 2025.0.0** 
 *   **Gradle**
 *   **Java 17**
 *   **Spring Cloud Netflix Eureka Server**: 서비스 디스커버리
