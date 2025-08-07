@@ -22,12 +22,12 @@ my-spring-microservices/
 ## 주요 기술 스택
 
 *   **Spring Boot 3.5.4**
-*   **Spring Cloud 2025.0.0** 
+*   **Spring Cloud 2023.0.3**
 *   **Gradle**
 *   **Java 17**
 *   **Spring Cloud Netflix Eureka Server**: 서비스 디스커버리
 *   **Spring Cloud Config Server**: 중앙 집중식 설정 관리 (Git 백엔드)
-*   **Spring Cloud Gateway**: API 게이트웨이
+*   **Spring Cloud Gateway (WebFlux 기반)**: API 게이트웨이
 *   **Spring Cloud OpenFeign**: 선언적 REST 클라이언트 (서비스 간 동기 통신)
 *   **Spring Kafka**: 비동기 메시징
 *   **Docker & Docker Compose**: 컨테이너화 및 오케스트레이션
@@ -81,43 +81,62 @@ Config Server가 프라이빗 Git 저장소에 접근하고 암호화/복호화�
     ```
     (Linux/macOS의 경우 `export` 사용)
 
-### 4. Docker Compose를 이용한 모든 서비스 실행
+### 4. 서비스 빌드 및 실행
 
-모든 마이크로서비스와 Kafka, Zookeeper를 Docker 컨테이너로 한 번에 빌드하고 실행합니다.
+모든 마이크로서비스를 빌드하고 순서대로 실행합니다.
 
-1.  프로젝트 루트 디렉토리(`my-spring-microservices`)에서 다음 명령어를 실행합니다:
+1.  **전체 프로젝트 클린 빌드:** 프로젝트 루트 디렉토리에서 다음 명령어를 실행합니다.
     ```bash
-    docker compose up --build
+    gradlew.bat clean build
     ```
-    이 명령은 모든 `Dockerfile`을 기반으로 이미지를 빌드하고, `docker-compose.yml`에 정의된 순서대로 컨테이너를 시작합니다.
 
-2.  컨테이너 중지 및 삭제:
-    ```bash
-    docker compose down
-    ```
+2.  **각 서비스 순서대로 실행:** 각 서비스는 별도의 터미널에서 실행하거나, 백그라운드 실행(`&`)을 사용해야 합니다.
+    *   **`eureka-server` 시작:**
+        ```bash
+        cd eureka-server
+        gradlew.bat bootRun
+        ```
+    *   **`config-server` 시작:**
+        ```bash
+        cd config-server
+        gradlew.bat bootRun
+        ```
+    *   **`user-service` 시작:**
+        *   **참고:** API Gateway 테스트를 위해 `user-service/src/main/java/com/cvcvcx/user_service/controller/AuthController.java` 파일에 `@GetMapping("/api/auth/test")` 엔드포인트가 추가되었습니다.
+        ```bash
+        cd user-service
+        gradlew.bat bootRun
+        ```
+    *   **`api-gateway` 시작:**
+        ```bash
+        cd api-gateway
+        gradlew.bat bootRun
+        ```
 
 ### 5. 서비스 확인
 
 모든 서비스가 성공적으로 실행되면 다음을 확인할 수 있습니다:
 
 *   **Eureka Server 대시보드:** `http://localhost:8761`
-    *   `API-GATEWAY`, `CONFIG-SERVER`, `EUREKA-SERVER`, `NOTIFICATION-SERVICE`, `USER-SERVICE`가 `UP` 상태로 등록되어 있는지 확인합니다.
+    *   `API-GATEWAY`, `CONFIG-SERVER`, `EUREKA-SERVER`, `USER-SERVICE`가 `UP` 상태로 등록되어 있는지 확인합니다.
 *   **Config Server 설정 확인:** `http://localhost:8090/user-service/default`
     *   `user-service.yml`의 내용이 JSON 형태로 반환되는지 확인합니다. `jwt.secret`과 같은 암호화된 값은 복호화되어 표시됩니다.
-*   **API Gateway를 통한 서비스 접근:**
-    *   `user-service` 테스트: `http://localhost:8080/user-service/test` (User Service의 `/users/test` 엔드포인트 호출)
-    *   `auth-service` 테스트: `http://localhost:8080/auth-service/auth/test-user-service` (Auth Service의 `/auth/test-user-service` 엔드포인트 호출, 이는 다시 User Service를 호출)
-    *   Kafka 메시지 발행 테스트: `http://localhost:8080/user-service/register-user/newuser` (User Service의 `/users/register-user/{username}` 엔드포인트 호출)
-        *   이후 `notification-service` 컨테이너의 로그(`docker compose logs -f notification-service`)에서 메시지 수신을 확인합니다.
+*   **API Gateway를 통한 서비스 접근 테스트:**
+    *   `user-service` 테스트 엔드포인트 호출: `http://localhost:8080/user-service/api/auth/test`
+        *   **예상 결과:** `user-service`에서 반환하는 "Hello from User Service via API Gateway!" 메시지를 받게 될 것입니다.
 
 ## 문제 해결
 
+*   **`Cannot decrypt key: jwt.secret` 또는 `bad padding` 오류 (Config Server):**
+    *   `CONFIG_ENCRYPTION_KEY` 환경 변수가 `jwt.secret` 값을 암호화할 때 사용한 키와 정확히 일치하는지 확인합니다.
+    *   `config-server`가 실행 중인 상태에서 `curl -X POST http://localhost:8090/encrypt -d YOUR_SECRET_KEY_VALUE` 명령어를 사용하여 `jwt.secret`의 원본 값을 다시 암호화하고, 그 결과로 나온 암호화된 문자열을 `config-file/user-service.yml`에 업데이트합니다.
 *   **`Connection refused` 오류:** 대상 서비스(Eureka, Config Server 등)가 실행 중인지, 포트가 올바른지, 방화벽이 차단하고 있지 않은지 확인합니다.
 *   **`not authorized` 오류 (Config Server):** Git 저장소의 `username`과 `password` (PAT)가 올바른지, 환경 변수가 제대로 설정되었는지, PAT에 충분한 권한이 있는지 확인합니다.
-*   **`No encryption for FailsafeTextEncryptor` 오류:** Config Server의 `encrypt.key` 설정이 올바른지, 암호화된 값을 생성할 때 사용한 키와 일치하는지 확인합니다.
-*   **`bad padding` 오류:** 암호화된 값이 손상되었거나, 암호화 키가 불일치할 때 발생합니다. 암호화된 값을 다시 생성하여 적용합니다.
 *   **`Could not resolve placeholder` 오류:** 해당 플레이스홀더에 해당하는 설정 값이 Config Server의 Git 저장소에 없거나, Config Server가 이를 클라이언트 서비스에 제대로 전달하지 못했을 때 발생합니다.
 *   **`YAML parsing error`:** Git 저장소의 `.yml` 파일에 YAML 문법 오류(특히 들여쓰기나 따옴표 누락)가 있는지 확인합니다.
+*   **`Spring MVC found on classpath, which is incompatible with Spring Cloud Gateway.` 오류 (API Gateway):**
+    *   `api-gateway/build.gradle`에서 `spring-cloud-starter-gateway` 대신 `spring-cloud-starter-gateway-webflux`를 사용하고, `springCloudVersion`이 `2023.0.3`인지 확인합니다.
+    *   `api-gateway/src/main/resources/application.yml`에 `spring.main.web-application-type: reactive`가 설정되어 있고, `spring.cloud.gateway` 관련 설정 키들이 `spring.cloud.gateway.server.webflux`로 시작하도록 변경되었는지 확인합니다.
 
 ## TODO 리스트 (MSA 전환)
 
@@ -142,7 +161,7 @@ Config Server가 프라이빗 Git 저장소에 접근하고 암호화/복호화�
     *   각 서비스는 `./gradlew bootRun` (또는 Windows의 경우 `gradlew.bat bootRun`) 명령어를 사용하여 실행할 수 있습니다.
 2.  **테스트:**
     *   Eureka 대시보드 (`http://localhost:8761`)에서 서비스 등록을 확인합니다.
-    *   API Gateway 라우팅을 테스트합니다 (예: `http://localhost:8080/user-service/your-user-endpoint`).
+    *   API Gateway 라우팅을 테스트합니다 (예: `http://localhost:8080/user-service/api/auth/test`).
 3.  **중앙 집중식 구성:**
     *   `config-server`의 Git 저장소에 `user-service`가 구성을 가져올 수 있도록 `config-file/user-service.yml` 파일이 있는지 확인합니다.
 4.  **추가 개발:**
