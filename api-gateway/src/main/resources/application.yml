@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  main:
+    web-application-type: reactive # TODO: 웹 애플리케이션 타입 reactive로 설정
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true # TODO: 설정 키 이름 변경
+          routes:
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/user-service/**
+              filters:
+                - RewritePath=/user-service/(?<segment>.*), /${segment}
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    prefer-ip-address: true

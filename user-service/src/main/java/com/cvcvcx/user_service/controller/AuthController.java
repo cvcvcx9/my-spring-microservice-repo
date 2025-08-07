@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping; // TODO: GetMapping 임포트 추가
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +39,11 @@ public class AuthController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
+
+    @GetMapping("/test") // TODO: API Gateway 테스트용 엔드포인트 추가
+    public String testUserService() {
+        return "Hello from User Service via API Gateway!";
+    }
 
     @PostMapping("/register/mobile")
     public ResponseEntity<?> registerUserForMobile(@RequestBody RegisterRequestDto registerRequest) {

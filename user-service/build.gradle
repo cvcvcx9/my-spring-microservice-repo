@@ -21,7 +21,7 @@ repositories {
 }
 
 ext {
-	set('springCloudVersion', '2025.0.0')
+	set('springCloudVersion', '2025.0.0') // TODO: Spring Cloud 버전 2023.0.3으로 변경
 }
 
 dependencies {
